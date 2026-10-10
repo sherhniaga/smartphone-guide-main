@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Адреса сайту підставляється автоматично під час деплою (див. .github/workflows/deploy.yml)
+Sitemap: __SITE_URL__/sitemap.xml

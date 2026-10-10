@@ -1,0 +1,62 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Один деплой одночасно; запущені деплої не скасовуємо
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Build site (copy files + inject site URL)
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}   # напр. https://user.github.io/smartphone-guide
+          BASE_PATH: ${{ steps.pages.outputs.base_path }} # напр. /smartphone-guide (або порожньо)
+        run: |
+          set -euo pipefail
+          mkdir _site
+          tar -cf - \
+            --exclude='./.git' --exclude='./.github' --exclude='./_site' \
+            --exclude='./README.md' --exclude='./.gitignore' \
+            . | tar -xf - -C _site
+          # Підставляємо реальну адресу сайту в canonical, og:*, JSON-LD, sitemap, robots, 404
+          find _site -type f \( -name '*.html' -o -name '*.xml' -o -name '*.txt' \) -print0 \
+            | xargs -0 sed -i -e "s|__SITE_URL__|${SITE_URL}|g" -e "s|__BASE_PATH__|${BASE_PATH}|g"
+          # Захист: у збірці не повинно лишитися плейсхолдерів
+          if grep -rIn -e '__SITE_URL__' -e '__BASE_PATH__' -e 'example\.com' _site; then
+            echo "::error::Лишились незамінені плейсхолдери"; exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
