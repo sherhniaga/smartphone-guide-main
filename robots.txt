@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
 
-# Адреса сайту підставляється автоматично під час деплою (див. .github/workflows/deploy.yml)
-Sitemap: __SITE_URL__/sitemap.xml
+
+Sitemap: https://sherhniaga.github.io/smartphone-guide-main/sitemap.xml
